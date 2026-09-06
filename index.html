@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#193b36">
+  <meta name="description" content="A private, offline-first personal finance tracker.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <title>MyFinTrack</title>
+</head>
+<body>
+  <div class="pin-lock" id="pin-lock" role="dialog" aria-modal="true" aria-labelledby="pin-lock-title">
+    <div class="pin-lock-card">
+      <span class="pin-lock-mark" aria-hidden="true">M</span>
+      <p class="eyebrow">Private & offline</p>
+      <h1 id="pin-lock-title">MyFinTrack</h1>
+      <p class="pin-lock-subtitle">Enter your PIN to continue</p>
+      <form id="pin-form" class="pin-form">
+        <div class="pin-inputs" id="pin-inputs" aria-label="4-digit PIN">
+          <input class="pin-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" aria-label="PIN digit 1" required>
+          <input class="pin-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 2" required>
+          <input class="pin-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 3" required>
+          <input class="pin-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 4" required>
+        </div>
+        <p class="pin-error" id="pin-error" role="alert" aria-live="polite"></p>
+        <button class="button button-dark full-width" type="submit">Unlock <span>↗</span></button>
+      </form>
+      <div class="pin-keypad" id="pin-keypad" aria-label="PIN keypad">
+        <button type="button" data-pin-key="1">1</button>
+        <button type="button" data-pin-key="2">2</button>
+        <button type="button" data-pin-key="3">3</button>
+        <button type="button" data-pin-key="4">4</button>
+        <button type="button" data-pin-key="5">5</button>
+        <button type="button" data-pin-key="6">6</button>
+        <button type="button" data-pin-key="7">7</button>
+        <button type="button" data-pin-key="8">8</button>
+        <button type="button" data-pin-key="9">9</button>
+        <span aria-hidden="true"></span>
+        <button type="button" data-pin-key="0">0</button>
+        <button type="button" class="pin-delete" data-pin-action="delete" aria-label="Delete last digit">⌫</button>
+      </div>
+    </div>
+  </div>
+  <header class="topbar">
+    <a class="brand" href="#dashboard" aria-label="MyFinTrack dashboard">
+      <span class="brand-mark">M</span>
+      <span>MyFinTrack</span>
+    </a>
+    <nav class="main-nav" aria-label="Primary navigation">
+      <button class="nav-tab is-active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-tab" data-tab="expenses">Expenses</button>
+      <button class="nav-tab" data-tab="investments">Investments</button>
+      <button class="nav-tab" data-tab="income">Income</button>
+    </nav>
+    <div class="nav-actions">
+      <button class="settings-button" id="settings-button" title="Settings" aria-label="Open settings">⚙</button>
+      <span class="privacy-badge"><span class="status-dot"></span> Private & offline</span>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section id="dashboard" class="tab-panel is-visible" aria-labelledby="dashboard-title">
+      <div class="backup-banner" id="backup-banner" role="status">
+        <span id="backup-message"></span>
+        <button class="button button-light" id="export-now-button" type="button">Export Now</button>
+        <button class="banner-dismiss" id="dismiss-backup-button" type="button" aria-label="Dismiss backup reminder">×</button>
+      </div>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">Your financial snapshot</p>
+          <h1 id="dashboard-title">Good morning<span class="accent-dot">.</span></h1>
+          <p class="muted" id="dashboard-date"></p>
+        </div>
+        <button class="button button-dark" data-go-tab="expenses"><span>+</span> Add expense</button>
+      </div>
+      <div class="summary-grid">
+        <article class="summary-card card-balance primary-card">
+          <div class="card-label"><span class="icon-circle icon-green">₹</span><span>Available balance <small>after all activity</small></span></div>
+          <strong id="available-balance">₹0.00</strong>
+          <span class="card-foot">Starting balance + income - spending</span>
+        </article>
+        <article class="summary-card card-expenses">
+          <div class="card-label"><span class="icon-circle icon-coral">↘</span><span>Total expenses <small>this month</small></span></div>
+          <strong id="total-expenses">₹0.00</strong>
+          <span class="card-foot" id="expense-count">0 transactions</span>
+        </article>
+        <article class="summary-card card-invested">
+          <div class="card-label"><span class="icon-circle icon-blue">↗</span><span>Total invested <small>all time</small></span></div>
+          <strong id="total-invested">₹0.00</strong>
+          <span class="card-foot" id="investment-count">0 positions</span>
+        </article>
+        <article class="summary-card card-value">
+          <div class="card-label"><span class="icon-circle icon-yellow">◆</span><span>Portfolio value <small>current estimate</small></span></div>
+          <strong id="portfolio-value">₹0.00</strong>
+          <span class="card-foot" id="portfolio-change">Add investments to track value</span>
+        </article>
+        <article class="summary-card card-worth">
+          <div class="card-label"><span class="icon-circle icon-green">✦</span><span>Net worth <small>simple estimate</small></span></div>
+          <strong id="net-worth">₹0.00</strong>
+          <span class="card-foot">Balance includes all activity</span>
+        </article>
+      </div>
+      <div class="charts-grid">
+        <article class="chart-card">
+          <div class="section-title"><div><p class="eyebrow">Where it goes</p><h2>Expense breakdown</h2></div><span class="chart-period">This month</span></div>
+          <div class="chart-wrap"><canvas id="expense-chart" aria-label="Expense breakdown by category"></canvas><p class="empty-chart" id="expense-empty">Add expenses to see your spending mix.</p></div>
+          <div class="legend" id="expense-legend"></div>
+        </article>
+        <article class="chart-card">
+          <div class="section-title"><div><p class="eyebrow">Your mix</p><h2>Investment allocation</h2></div><span class="chart-period">Current</span></div>
+          <div class="chart-wrap"><canvas id="investment-chart" aria-label="Investment allocation by asset type"></canvas><p class="empty-chart" id="investment-empty">Add investments to see your allocation.</p></div>
+          <div class="legend" id="investment-legend"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="expenses" class="tab-panel" aria-labelledby="expenses-title">
+      <div class="page-heading compact-heading"><div><p class="eyebrow">Keep a clear trail</p><h1 id="expenses-title">Expenses<span class="accent-dot">.</span></h1><p class="muted">Every small choice adds up.</p></div></div>
+      <div class="content-grid">
+        <form class="form-card" id="expense-form">
+          <div class="section-title"><div><p class="eyebrow">New entry</p><h2>Add an expense</h2></div><span class="form-number">01</span></div>
+          <label>Amount<input type="number" name="amount" min="0.01" step="0.01" placeholder="₹0.00" required></label>
+          <label>Category<select name="category" required><option value="Food">Food</option><option value="Travel">Travel</option><option value="Shopping">Shopping</option><option value="Bills">Bills</option><option value="Health">Health</option><option value="Other">Other</option></select></label>
+          <label>Date<input type="date" name="date" required></label>
+          <label>Note <span class="optional">optional</span><input type="text" name="note" maxlength="80" placeholder="What was it for?"></label>
+          <button class="button button-dark full-width" type="submit">Save expense <span>↗</span></button>
+        </form>
+        <div class="list-card">
+          <div class="list-header"><div><p class="eyebrow">Activity</p><h2>Recent expenses</h2></div><strong class="running-total" id="expense-running-total">₹0.00</strong></div>
+          <div class="filters"><select id="expense-category-filter" aria-label="Filter expenses by category"><option value="all">All categories</option><option>Food</option><option>Travel</option><option>Shopping</option><option>Bills</option><option>Health</option><option>Other</option></select><input id="expense-from" type="date" aria-label="Expenses from date"><input id="expense-to" type="date" aria-label="Expenses to date"></div>
+          <div class="table-scroll"><table><thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="align-right">Amount</th><th aria-label="Actions"></th></tr></thead><tbody id="expense-list"></tbody></table></div>
+          <div class="empty-state" id="expense-list-empty">No expenses match these filters.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="investments" class="tab-panel" aria-labelledby="investments-title">
+      <div class="page-heading compact-heading"><div><p class="eyebrow">Grow with intention</p><h1 id="investments-title">Investments<span class="accent-dot">.</span></h1><p class="muted">A simple view of where your money is working.</p></div></div>
+      <div class="content-grid">
+        <form class="form-card investment-form" id="investment-form">
+          <div class="section-title"><div><p class="eyebrow">New position</p><h2>Add an investment</h2></div><span class="form-number">02</span></div>
+          <label>Asset name<input type="text" name="name" maxlength="50" placeholder="e.g. Global index fund" required></label>
+          <label>Asset type<select name="type" required><option>Stocks</option><option>ETFs</option><option>Crypto</option><option>Bonds</option><option>Real estate</option><option>Cash</option><option>Other</option></select></label>
+          <label>Amount invested<input type="number" name="amount" min="0.01" step="0.01" placeholder="₹0.00" required></label>
+          <label>Current value<input type="number" name="value" min="0" step="0.01" placeholder="₹0.00" required></label>
+          <label>Date added<input type="date" name="date" required></label>
+          <button class="button button-dark full-width" type="submit">Save investment <span>↗</span></button>
+        </form>
+        <div class="list-card">
+          <div class="list-header"><div><p class="eyebrow">Portfolio</p><h2>Your positions</h2></div><strong class="running-total" id="investment-running-total">₹0.00</strong></div>
+          <div class="table-scroll"><table><thead><tr><th>Asset</th><th>Type</th><th>Date</th><th class="align-right">Value</th><th aria-label="Actions"></th></tr></thead><tbody id="investment-list"></tbody></table></div>
+          <div class="empty-state" id="investment-list-empty">No investments added yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="income" class="tab-panel" aria-labelledby="income-title">
+      <div class="page-heading compact-heading"><div><p class="eyebrow">Money coming in</p><h1 id="income-title">Income<span class="accent-dot">.</span></h1><p class="muted">Keep your available balance grounded in reality.</p></div></div>
+      <article class="income-summary summary-card card-income">
+        <div class="card-label"><span class="icon-circle icon-green">↗</span><span>Total income <small>all time</small></span></div>
+        <strong id="total-income">₹0.00</strong>
+        <span class="card-foot" id="income-count">0 entries</span>
+      </article>
+      <div class="content-grid">
+        <form class="form-card" id="income-form">
+          <div class="section-title"><div><p class="eyebrow">New entry</p><h2>Add income</h2></div><span class="form-number">03</span></div>
+          <label>Amount<input type="number" name="amount" min="0.01" step="0.01" placeholder="₹0.00" required></label>
+          <label>Source<select name="source" required><option>Pocket Money</option><option>Salary</option><option>Gift</option><option>Other</option></select></label>
+          <label>Date<input type="date" name="date" required></label>
+          <label>Note <span class="optional">optional</span><input type="text" name="note" maxlength="80" placeholder="Where did it come from?"></label>
+          <button class="button button-dark full-width" type="submit">Save income <span>↗</span></button>
+        </form>
+        <div class="list-card">
+          <div class="list-header"><div><p class="eyebrow">Activity</p><h2>Income history</h2></div><strong class="running-total" id="income-running-total">₹0.00</strong></div>
+          <div class="table-scroll"><table><thead><tr><th>Date</th><th>Source</th><th>Note</th><th class="align-right">Amount</th><th aria-label="Actions"></th></tr></thead><tbody id="income-list"></tbody></table></div>
+          <div class="empty-state" id="income-list-empty">No income added yet.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="modal-backdrop" id="setup-modal" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+    <form class="modal-card" id="setup-form">
+      <p class="eyebrow">A fresh start</p><h2 id="setup-title">Enter your starting balance</h2>
+      <p class="muted">This is the amount you have available before tracking begins.</p>
+      <label>Starting balance<input type="number" name="initialBalance" min="0" step="0.01" placeholder="₹0.00" required autofocus></label>
+      <button class="button button-dark full-width" type="submit">Get Started <span>↗</span></button>
+    </form>
+  </div>
+  <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-card">
+      <div class="section-title"><div><p class="eyebrow">Control center</p><h2 id="settings-title">Settings</h2></div><button class="modal-close" id="close-settings" type="button" aria-label="Close settings">×</button></div>
+      <p class="muted">Your data stays in this browser unless you export it.</p>
+      <button class="button button-light full-width" id="settings-export-button" type="button">Export Data <span>↓</span></button>
+      <button class="button button-light full-width" id="restore-button" type="button">Restore from Auto-Backup <span>↺</span></button>
+      <button class="button button-danger full-width" id="reset-button" type="button">Reset App <span>×</span></button>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
