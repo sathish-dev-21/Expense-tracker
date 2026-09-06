@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const STORAGE_KEY = 'myfintrack-data';
 const INCOME_KEY = 'income';
 const INITIAL_BALANCE_KEY = 'initialBalance';
@@ -240,10 +239,21 @@ function setupPinLock() {
   const inputs = [...document.querySelectorAll('.pin-input')];
   const inputGroup = document.querySelector('#pin-inputs');
   const error = document.querySelector('#pin-error');
+  let activeIndex = 0;
+
+  function setActive(index) {
+    activeIndex = Math.max(0, Math.min(index, inputs.length - 1));
+    inputs.forEach((pinInput, inputIndex) => pinInput.classList.toggle('is-active', inputIndex === activeIndex));
+  }
+
+  function focusInput(index) {
+    setActive(index);
+    inputs[activeIndex].focus();
+  }
 
   function clearPin() {
     inputs.forEach(input => { input.value = ''; });
-    inputs[0].focus();
+    focusInput(0);
   }
 
   function submitPin() {
@@ -262,44 +272,47 @@ function setupPinLock() {
     clearPin();
   }
 
+  inputs.forEach(input => {
+    input.readOnly = true;
+    input.setAttribute('readonly', 'true');
+  });
   inputs.forEach((input, index) => {
+    input.addEventListener('focus', () => setActive(index));
     input.addEventListener('input', () => {
       input.value = input.value.replace(/\D/g, '').slice(-1);
       error.textContent = '';
-      if (input.value && index < inputs.length - 1) inputs[index + 1].focus();
+      if (input.value && index < inputs.length - 1) focusInput(index + 1);
       if (inputs.every(pinInput => pinInput.value)) submitPin();
     });
     input.addEventListener('keydown', event => {
-      if (event.key === 'Backspace' && !input.value && index > 0) inputs[index - 1].focus();
-      if (event.key === 'ArrowLeft' && index > 0) inputs[index - 1].focus();
-      if (event.key === 'ArrowRight' && index < inputs.length - 1) inputs[index + 1].focus();
+      if (event.key === 'Backspace' && !input.value && index > 0) focusInput(index - 1);
+      if (event.key === 'ArrowLeft' && index > 0) focusInput(index - 1);
+      if (event.key === 'ArrowRight' && index < inputs.length - 1) focusInput(index + 1);
     });
     input.addEventListener('paste', event => {
       event.preventDefault();
       const pastedPin = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, inputs.length);
       pastedPin.split('').forEach((digit, pastedIndex) => { inputs[pastedIndex].value = digit; });
       const nextEmpty = inputs.findIndex(pinInput => !pinInput.value);
-      if (nextEmpty === -1) submitPin(); else inputs[nextEmpty].focus();
+      if (nextEmpty === -1) submitPin(); else focusInput(nextEmpty);
     });
   });
 
   form.addEventListener('submit', event => { event.preventDefault(); submitPin(); });
   document.querySelectorAll('[data-pin-key]').forEach(button => button.addEventListener('click', () => {
-    const nextEmpty = inputs.findIndex(input => !input.value);
-    if (nextEmpty === -1) return;
-    inputs[nextEmpty].value = button.dataset.pinKey;
-    inputs[nextEmpty].focus();
-    if (inputs.every(input => input.value)) submitPin();
+    inputs[activeIndex].value = button.dataset.pinKey;
+    inputs[activeIndex].dispatchEvent(new Event('input', { bubbles: true }));
   }));
   document.querySelector('[data-pin-action="delete"]').addEventListener('click', () => {
-    const lastFilled = [...inputs].reverse().findIndex(input => input.value);
-    if (lastFilled === -1) return;
-    const index = inputs.length - 1 - lastFilled;
-    inputs[index].value = '';
-    inputs[index].focus();
+    const input = inputs[activeIndex];
+    if (input.value) input.value = '';
+    else if (activeIndex > 0) {
+      focusInput(activeIndex - 1);
+      inputs[activeIndex].value = '';
+    }
     error.textContent = '';
   });
-  inputs[0].focus();
+  focusInput(0);
 }
 
 function setupApp() {
@@ -332,7 +345,7 @@ setupApp();
 renderAll();
 maybePromptBackup();
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
-=======
+/*
 const STORAGE_KEY = 'myfintrack-data';
 const INCOME_KEY = 'income';
 const INITIAL_BALANCE_KEY = 'initialBalance';
@@ -595,4 +608,4 @@ setupApp();
 renderAll();
 maybePromptBackup();
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
->>>>>>> 79e7681c672409ea7cb6e73482b81ec0c2c7d345
+*/
