@@ -6,7 +6,8 @@ const AUTO_BACKUP_KEY = 'autoBackupSnapshot';
 const LAST_BACKUP_KEY = 'lastBackupDate';
 const BACKUP_PROMPT_KEY = 'backupPromptDate';
 const BACKUP_DISMISS_KEY = 'backupDismissedDate';
-const APP_PIN = "6379";
+const PIN_SET_KEY = 'pinIsSet';
+const USER_PIN_KEY = 'userPin';
 const COLORS = ['#e67c67', '#6792b8', '#e6b84f', '#6eaa86', '#9a7eb8', '#d28e5e'];
 const money = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value || 0);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -239,7 +240,12 @@ function setupPinLock() {
   const inputs = [...document.querySelectorAll('.pin-input')];
   const inputGroup = document.querySelector('#pin-inputs');
   const error = document.querySelector('#pin-error');
+  const title = document.querySelector('#pin-lock-title');
+  const subtitle = document.querySelector('.pin-lock-subtitle');
+  const submitButton = form.querySelector('button[type="submit"]');
   let activeIndex = 0;
+  let flow = 'unlock';
+  let firstPin = '';
 
   function setActive(index) {
     activeIndex = Math.max(0, Math.min(index, inputs.length - 1));
@@ -256,17 +262,61 @@ function setupPinLock() {
     focusInput(0);
   }
 
+  function setScreen(nextFlow, message = '') {
+    flow = nextFlow;
+    const screens = {
+      unlock: { heading: 'MyFinTrack', subtitle: 'Enter your PIN to continue', button: 'Unlock' },
+      current: { heading: 'Enter your current PIN', subtitle: 'Verify your identity to change your PIN', button: 'Verify PIN' },
+      create: { heading: 'Create a 4-digit PIN', subtitle: 'Choose a PIN for this device', button: 'Continue' },
+      confirm: { heading: 'Confirm your PIN', subtitle: 'Enter your new PIN again', button: 'Save PIN' }
+    };
+    const screen = screens[nextFlow];
+    title.textContent = screen.heading;
+    subtitle.textContent = screen.subtitle;
+    submitButton.firstChild.textContent = `${screen.button} `;
+    error.textContent = message;
+    clearPin();
+  }
+
+  function finishUnlock() {
+    isUnlocked = true;
+    lock.classList.add('is-unlocked');
+    lock.setAttribute('aria-hidden', 'true');
+  }
+
   function submitPin() {
-    if (isUnlocked) return;
     const enteredPin = inputs.map(input => input.value).join('');
-    if (enteredPin.length !== APP_PIN.length) return;
-    if (enteredPin === APP_PIN) {
-      isUnlocked = true;
-      lock.classList.add('is-unlocked');
-      lock.setAttribute('aria-hidden', 'true');
+    if (enteredPin.length !== inputs.length) return;
+
+    if (flow === 'unlock') {
+      if (enteredPin === localStorage.getItem(USER_PIN_KEY)) finishUnlock();
+      else { error.textContent = 'Incorrect PIN, try again'; shakeAndClear(); }
       return;
     }
-    error.textContent = 'Incorrect PIN, try again';
+
+    if (flow === 'current') {
+      if (enteredPin === localStorage.getItem(USER_PIN_KEY)) setScreen('create');
+      else { error.textContent = 'Incorrect current PIN'; shakeAndClear(); }
+      return;
+    }
+
+    if (flow === 'create') {
+      firstPin = enteredPin;
+      setScreen('confirm');
+      return;
+    }
+
+    if (enteredPin === firstPin) {
+      localStorage.setItem(USER_PIN_KEY, enteredPin);
+      localStorage.setItem(PIN_SET_KEY, 'true');
+      finishUnlock();
+    } else {
+      firstPin = '';
+      setScreen('create', "PINs don't match, try again");
+    }
+  }
+
+  function shakeAndClear() {
     inputGroup.classList.remove('is-shaking');
     window.requestAnimationFrame(() => inputGroup.classList.add('is-shaking'));
     clearPin();
@@ -312,10 +362,19 @@ function setupPinLock() {
     }
     error.textContent = '';
   });
-  focusInput(0);
+  const startChangePin = () => {
+    firstPin = '';
+    lock.classList.remove('is-unlocked');
+    lock.removeAttribute('aria-hidden');
+    setScreen('current');
+  };
+
+  if (localStorage.getItem(PIN_SET_KEY) === 'true' && localStorage.getItem(USER_PIN_KEY)) setScreen('unlock');
+  else setScreen('create');
+  return { startChangePin };
 }
 
-function setupApp() {
+function setupApp(pinLock) {
   document.querySelector('#setup-form').addEventListener('submit', event => {
     event.preventDefault();
     initialBalance = Number(event.currentTarget.elements.initialBalance.value);
@@ -331,6 +390,10 @@ function setupApp() {
   document.querySelector('#export-now-button').addEventListener('click', exportData);
   document.querySelector('#dismiss-backup-button').addEventListener('click', () => { localStorage.setItem(BACKUP_DISMISS_KEY, today()); renderBackupReminder(); });
   document.querySelector('#restore-button').addEventListener('click', restoreAutoBackup);
+  document.querySelector('#change-pin-button').addEventListener('click', () => {
+    document.querySelector('#settings-modal').classList.remove('is-visible');
+    pinLock.startChangePin();
+  });
   document.querySelector('#reset-button').addEventListener('click', resetApp);
   if (localStorage.getItem(SETUP_KEY) !== 'true') document.querySelector('#setup-modal').classList.add('is-visible');
 }
@@ -338,10 +401,10 @@ function setupApp() {
 function renderAll() { renderDashboard(); renderExpenseList(); renderInvestmentList(); renderIncomeList(); renderBackupReminder(); }
 
 localStorage.setItem(INITIAL_BALANCE_KEY, initialBalance);
-setupPinLock();
+const pinLock = setupPinLock();
 setDefaultDates();
 activateTab(window.location.hash.slice(1) || 'dashboard');
-setupApp();
+setupApp(pinLock);
 renderAll();
 maybePromptBackup();
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
